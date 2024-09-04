@@ -62,6 +62,7 @@ struct MetalDepthView: View {
     @State var isShowSmoothDepth = false
     @State var isArPaused = false
     @State private var scaleMovement: Float = 1.5
+    @State private var isZoomed: Bool = false
     
     var confLevels = ["🔵🟢🔴", "🔵🟢", "🔵"]
     
@@ -70,17 +71,27 @@ struct MetalDepthView: View {
             Text("Unsupported Device: This app requires the LiDAR Scanner to access the scene's depth.")
         } else {
             NavigationView {
-                GeometryReader { geometry in
+                let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+                let screenWidth = UIScreen.main.bounds.width
+                let screenHeight = UIScreen.main.bounds.height
+                let calculatedWidth = isLandscape ? screenHeight / 2 : screenWidth / 2
+                let calculatedHeight = calculatedWidth / sizeW * sizeH
+                ScrollView([.horizontal, .vertical]) {
                     VStack() {
                         // Size the point cloud view relative to the underlying
                         // 3D geometry by matching the textures' aspect ratio.
                         HStack() {
                             Spacer()
                             MetalPointCloud(arData: arProvider,
-                                            confSelection: $selectedConfidence,
-                                            scaleMovement: $scaleMovement).zoomOnTapModifier(
-                                                height: geometry.size.width / 2 / sizeW * sizeH,
-                                                width: geometry.size.width / 2, title: "")
+                                                    confSelection: $selectedConfidence,
+                                                    scaleMovement: $scaleMovement)
+                                        .frame(width: isZoomed ? UIScreen.main.bounds.width : calculatedWidth,
+                                               height: isZoomed ? UIScreen.main.bounds.height : calculatedHeight)
+                                        .onTapGesture {
+                                            withAnimation {
+                                                isZoomed.toggle()
+                                            }
+                                        }
                             Spacer()
                         }
                         HStack {

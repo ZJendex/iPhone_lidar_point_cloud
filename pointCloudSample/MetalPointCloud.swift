@@ -31,12 +31,13 @@ final class CoordinatorPointCloud: MTKCoordinator {
     enum CameraModes {
         case quarterArc
         case sidewaysMovement
+        case staticMode
     }
     var currentCameraMode: CameraModes
     
     init(arData: ARProvider, confSelection: Binding<Int>, scaleMovement: Binding<Float>) {
         self.arData = arData
-        self.currentCameraMode = .sidewaysMovement
+        self.currentCameraMode = .staticMode
         self._confSelection = confSelection
         self._scaleMovement = scaleMovement
         super.init(content: arData.depthContent)
@@ -117,6 +118,10 @@ final class CoordinatorPointCloud: MTKCoordinator {
             translationCamera.columns.3 = [150 * sinf, -150 * cossqr, -150 * scaleMovement * sinsqr, 1]
             // Randomize the camera movement.
             cameraRotation = simd_quatf(angle: staticAngle, axis: SIMD3(x: -sinsqr / 3, y: -cossqr / 3, z: 0))
+        case .staticMode:
+            // For static mode, we keep the camera at a fixed position with no rotation.
+            translationCamera.columns.3 = [0, 0, 0, 1]  // No translation
+            cameraRotation = simd_quatf(angle: 0, axis: SIMD3(x: 0, y: 0, z: 0))  // No rotation
         }
         let rotationMatrix: matrix_float4x4 = matrix_float4x4(cameraRotation)
         let pmv = projection * rotationMatrix * translationCamera * translationOrig * orientationOrig

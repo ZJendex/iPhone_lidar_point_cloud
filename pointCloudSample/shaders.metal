@@ -214,3 +214,45 @@ kernel void convertYCbCrToRGBA(texture2d<float, access::read> colorYtexture [[te
     colorRGBTexture.write(colorSample, uint2(gid.xy));
 
 }
+
+struct VertexOut {
+    float4 position [[position]];  // Screen-space position
+    float2 texCoord;               // Texture coordinates
+};
+
+// Vertex shader to output texture coordinates for each vertex
+vertex VertexOut vertexShader(uint vertexID [[ vertex_id ]]) {
+    float2 pos[4] = {
+        float2(-1.0,  1.0),  // Top-left
+        float2(-1.0, -1.0),  // Bottom-left
+        float2( 1.0,  1.0),  // Top-right
+        float2( 1.0, -1.0)   // Bottom-right
+    };
+
+    float2 texCoords[4] = {
+        float2(0.0, 0.0),    // Texture coordinates for top-left
+        float2(0.0, 1.0),    // Bottom-left
+        float2(1.0, 0.0),    // Top-right
+        float2(1.0, 1.0)     // Bottom-right
+    };
+
+    VertexOut out;
+    out.position = float4(pos[vertexID], 0.0, 1.0);
+    out.texCoord = texCoords[vertexID];  // Pass the texture coordinates
+    return out;
+}
+// Fragment shader to map depth values to grayscale based on depth range (0 to 8 meters)
+fragment float4 depthFragmentShader(texture2d<float, access::sample> depthTexture [[ texture(0) ]],
+                                    sampler depthSampler [[ sampler(0) ]],
+                                    VertexOut in [[ stage_in ]]) {
+    // Sample the depth value at the current fragment's texture coordinates
+    float depth = depthTexture.sample(depthSampler, in.texCoord).r;
+
+    // Normalize depth between 0 and 8 meters
+    float normalizedDepth = clamp(depth / 8.0, 0.0, 1.0);
+
+    // Map depth to grayscale: closer values are lighter (white), further values are darker (black)
+    float grayscale = 1.0 - normalizedDepth;
+
+    return float4(grayscale, grayscale, grayscale, 1.0);  // Return the color as grayscale
+}

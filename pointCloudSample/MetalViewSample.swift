@@ -94,6 +94,14 @@ struct MetalDepthView: View {
                                         }
                             Spacer()
                         }
+                        NavigationLink(destination: HelloWorldView(arProvider: arProvider)) {
+                            Text("Go to Depthview")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                         HStack {
                             Text("Confidence Select:")
                             Picker(selection: $selectedConfidence, label: Text("Confidence Select")) {

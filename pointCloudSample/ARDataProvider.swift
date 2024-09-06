@@ -150,10 +150,67 @@ final class ARProvider: ARDataReceiver {
         }
     }
     
+    func printDepthData(from pixelBuffer: CVPixelBuffer) {
+        // Lock the pixel buffer so we can access its data.
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        
+        // Get the number of rows and columns (width and height) of the depth map.
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        print("Each row contains \(width) elements")
+        print("Each col contains \(height) rows")
+        
+        // Get the base address of the pixel buffer (pointer to the raw depth data).
+        let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer)
+        
+        // Get the row bytes (the number of bytes in each row of the depth buffer).
+        let rowBytes = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        
+        // Create a pointer to the float data (depth values are typically stored as Float32).
+        let depthPointer = baseAddress?.assumingMemoryBound(to: Float32.self)
+        
+        // Initialize min and max values
+        var minValue: Float32 = Float.greatestFiniteMagnitude
+        var maxValue: Float32 = -Float.greatestFiniteMagnitude
+        
+        // Iterate through the pixel buffer and print depth values as a 2D array.
+        for y in 0..<height {
+            var rowDepthValues = ""
+            for x in 0..<width {
+                let pixelIndex = y * (rowBytes / MemoryLayout<Float32>.size) + x
+                if let depthValue = depthPointer?[pixelIndex] {
+                    rowDepthValues += String(format: "%.3f ", depthValue) // Print with 3 decimal places
+                }
+                if let depthValue = depthPointer?[pixelIndex] {
+                                // Update min and max values
+                                if depthValue < minValue {
+                                    minValue = depthValue
+                                }
+                                if depthValue > maxValue {
+                                    maxValue = depthValue
+                                }
+                            }
+            }
+//            print(rowDepthValues)
+        }
+        print("Min depth value: \(minValue) meters")
+        print("Max depth value: \(maxValue) meters")
+        // Unlock the pixel buffer after accessing its data.
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+    }
+
+    // Call this function, for example, with:
+    // printDepthData(from: lastArData.depthImage!)
+    
     // Save a reference to the current AR data and process it.
     func onNewARData(arData: ARData) {
         lastArData = arData
-        processLastArData()
+//        if let depthPixelBuffer = arData.depthImage {
+//                printDepthData(from: depthPixelBuffer)
+//            } else {
+//                print("Depth data is not available.")
+//            }
+	        processLastArData()
     }
     
     // Copy the AR data to Metal textures and, if the user enables the UI, upscale the depth using a guided filter.

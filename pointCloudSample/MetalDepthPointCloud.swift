@@ -38,9 +38,13 @@ final class DepthCoordinator: NSObject, MTKViewDelegate {
     var pipelineState: MTLRenderPipelineState!
     var commandQueue: MTLCommandQueue!
     var samplerState: MTLSamplerState!
+    var minDepth: Float
+    var maxDepth: Float
     
-    init(arProvider: ARProvider) {
+    init(arProvider: ARProvider, minDepth: Binding<Float>, maxDepth: Binding<Float>) {
         self.arProvider = arProvider
+        self.minDepth = minDepth.wrappedValue
+        self.maxDepth = maxDepth.wrappedValue
         super.init()
         setupMetal()
     }
@@ -88,6 +92,8 @@ final class DepthCoordinator: NSObject, MTKViewDelegate {
         // Convert CVPixelBuffer to Metal texture
         guard let depthTexture = depthPixelBuffer.toMTLTexture(device: view.device!) else { return }
         
+        print("Rendering with minDepth: \(minDepth), maxDepth: \(maxDepth)")
+        
         // Create a command buffer and a render command encoder
         let commandBuffer = commandQueue.makeCommandBuffer()
         let renderEncoder = commandBuffer?.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
@@ -96,6 +102,9 @@ final class DepthCoordinator: NSObject, MTKViewDelegate {
         // Set the depth texture for the fragment shader
         renderEncoder?.setFragmentTexture(depthTexture, index: 0)
         renderEncoder?.setFragmentSamplerState(samplerState, index: 0)
+        
+        renderEncoder?.setFragmentBytes(&minDepth, length: MemoryLayout<Float>.stride, index: 1)
+        renderEncoder?.setFragmentBytes(&maxDepth, length: MemoryLayout<Float>.stride, index: 2)
         
         // Draw a full-screen quad to render the depth data
         renderEncoder?.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
@@ -112,9 +121,11 @@ final class DepthCoordinator: NSObject, MTKViewDelegate {
 
 struct DepthView: UIViewRepresentable {
     var arProvider: ARProvider
+    @Binding var minDepth: Float
+    @Binding var maxDepth: Float
     
     func makeCoordinator() -> DepthCoordinator {
-        return DepthCoordinator(arProvider: arProvider)
+        return DepthCoordinator(arProvider: arProvider, minDepth: $minDepth, maxDepth: $maxDepth)
     }
     
     func makeUIView(context: Context) -> MTKView {
@@ -129,5 +140,7 @@ struct DepthView: UIViewRepresentable {
     
     func updateUIView(_ uiView: MTKView, context: Context) {
         // Update view if necessary
+        context.coordinator.minDepth = minDepth
+        context.coordinator.maxDepth = maxDepth
     }
 }

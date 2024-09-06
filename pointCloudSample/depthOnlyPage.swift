@@ -21,7 +21,7 @@ struct HelloWorldView: View {
             Spacer()  // Push content towards the center vertically
             
             // The DepthView to display real-time depth data
-            DepthView(arProvider: arProvider)
+            DepthView(arProvider: arProvider, minDepth: $minDepth, maxDepth: $maxDepth)
                 .frame(height: 300)  // Adjust height of the DepthView to your preference
                 .background(Color.black)  // Optional: background color to highlight the depth view
                 .rotationEffect(Angle(degrees: 90))

@@ -244,12 +244,19 @@ vertex VertexOut vertexShader(uint vertexID [[ vertex_id ]]) {
 // Fragment shader to map depth values to grayscale based on depth range (0 to 8 meters)
 fragment float4 depthFragmentShader(texture2d<float, access::sample> depthTexture [[ texture(0) ]],
                                     sampler depthSampler [[ sampler(0) ]],
+                                    constant float &minDepth [[ buffer(1) ]],
+                                    constant float &maxDepth [[ buffer(2) ]],
                                     VertexOut in [[ stage_in ]]) {
     // Sample the depth value at the current fragment's texture coordinates
     float depth = depthTexture.sample(depthSampler, in.texCoord).r;
+    
+    // Visual debug: output red if depth is outside the range
+    if (depth < minDepth || depth > maxDepth) {
+        return float4(1.0, 0.0, 0.0, 1.0);  // Return red for out-of-range depth
+    }
 
-    // Normalize depth between 0 and 8 meters
-    float normalizedDepth = clamp(depth / 8.0, 0.0, 1.0);
+    // Normalize the depth between minDepth and maxDepth
+    float normalizedDepth = clamp((depth - minDepth) / (maxDepth - minDepth), 0.0, 1.0);
 
     // Map depth to grayscale: closer values are lighter (white), further values are darker (black)
     float grayscale = 1.0 - normalizedDepth;
